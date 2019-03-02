@@ -22,11 +22,11 @@ class TowerRepresentation(nn.Module):
         self.pool = pool
 
         self.conv1 = nn.Conv2d(n_channels, k, kernel_size=2, stride=2)
-        self.conv2 = nn.Conv2d(k, k, kernel_size=2, stride=2)
+        self.conv2 = nn.Conv2d(k, k//2, kernel_size=1, stride=1)
         self.conv3 = nn.Conv2d(k, k//2, kernel_size=3, stride=1, padding=1)
         self.conv4 = nn.Conv2d(k//2, k, kernel_size=2, stride=2)
 
-        self.conv5 = nn.Conv2d(k + v_dim, k, kernel_size=3, stride=1, padding=1)
+        self.conv5 = nn.Conv2d(k + v_dim, k//2, kernel_size=1, stride=1)
         self.conv6 = nn.Conv2d(k + v_dim, k//2, kernel_size=3, stride=1, padding=1)
         self.conv7 = nn.Conv2d(k//2, k, kernel_size=3, stride=1, padding=1)
         self.conv8 = nn.Conv2d(k, k, kernel_size=1, stride=1)
@@ -46,18 +46,19 @@ class TowerRepresentation(nn.Module):
         v = v.repeat(1, 1, self.r_dim // 16, self.r_dim // 16)
 
         # First skip-connected conv block
-        skip_in  = F.relu(self.conv1(x))
-        skip_out = F.relu(self.conv2(skip_in))
+        x  = F.relu(self.conv1(x))
+        skip = self.conv2(x)
 
-        x = F.relu(self.conv3(skip_in))
-        x = F.relu(self.conv4(x)) + skip_out
+        x = F.relu(self.conv3(x))
+        x = x + skip
+        x = F.relu(self.conv4(x))
 
         # Second skip-connected conv block (merged)
-        skip_in = torch.cat([x, v], dim=1)
-        skip_out  = F.relu(self.conv5(skip_in))
-
-        x = F.relu(self.conv6(skip_in))
-        x = F.relu(self.conv7(x)) + skip_out
+        x = torch.cat([x, v], dim=1)
+        skip = self.conv5(x)
+        x = F.relu(self.conv6(x))
+        x = x + skip
+        x = F.relu(self.conv7(x))
 
         r = F.relu(self.conv8(x))
 
