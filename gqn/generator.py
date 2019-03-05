@@ -87,7 +87,7 @@ class GeneratorNetwork(nn.Module):
 
         # Core computational units
         kwargs = dict(kernel_size=5, stride=1, padding=2)
-        inference_args = dict(in_channels=v_dim + r_dim + x_dim + h_dim, out_channels=h_dim, **kwargs)
+        inference_args = dict(in_channels=v_dim + r_dim + x_dim + h_dim + h_dim, out_channels=h_dim, **kwargs)
         generator_args = dict(in_channels=v_dim + r_dim + z_dim, out_channels=h_dim, **kwargs)
         if self.share:
             self.inference_core = Conv2dLSTMCell(**inference_args)
@@ -142,8 +142,9 @@ class GeneratorNetwork(nn.Module):
             prior_distribution = Normal(p_mu, F.softplus(p_std))
 
             # Inference state update
+            u_hidden = self.downsample(u)
             inference = self.inference_core if self.share else self.inference_core[l]
-            hidden_i, cell_i = inference(torch.cat([hidden_g, x, v, r], dim=1), [hidden_i, cell_i])
+            hidden_i, cell_i = inference(torch.cat([hidden_g, u_hidden, x, v, r], dim=1), [hidden_i, cell_i])
 
             # Posterior factor (eta e network)
             q_mu, q_std = torch.chunk(self.posterior_density(hidden_i), 2, dim=1)
