@@ -9,7 +9,8 @@ Thanks to l3robot and versatran01 for providing initial
 scripts.
 """
 import os, gzip, torch
-import tensorflow as tf, numpy as np, multiprocessing as mp
+import tensorflow as tf
+import numpy as np #, multiprocessing as mp
 from functools import partial
 from itertools import islice, chain
 from argparse import ArgumentParser
@@ -18,7 +19,7 @@ from argparse import ArgumentParser
 tf.logging.set_verbosity(tf.logging.ERROR)
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-POSE_DIM, IMG_DIM, SEQ_DIM = 5, 64, 15
+POSE_DIM, IMG_DIM, SEQ_DIM = 5, 64, 10
 
 def chunk(iterable, size=10):
     """
@@ -45,8 +46,10 @@ def process(record):
         poses  = instance['cameras']
 
         # Convert
+
         images = tf.map_fn(tf.image.decode_jpeg, tf.reshape(images, [-1]), **kwargs)
-        images = tf.reshape(images, (-1, SEQ_DIM, 3, IMG_DIM, IMG_DIM))
+        images = tf.reshape(images, (-1, SEQ_DIM, IMG_DIM, IMG_DIM, 3))
+        images = tf.transpose(images, [0, 1, 4, 2, 3])
         poses  = tf.reshape(poses,  (-1, SEQ_DIM, POSE_DIM))
 
         # Numpy conversion
@@ -64,8 +67,8 @@ def convert(record, batch_size):
     batch_process = lambda r: chunk(process(r), batch_size)
 
     for i, batch in enumerate(batch_process(record)):
-        path = os.path.join(path, "{0:}-{1:02}.pt.gz".format(basename, i))
-        with gzip.open(path, 'wb') as f:
+        save_path = os.path.join(path, "{0:}-{1:02}.pt.gz".format(basename, i))
+        with gzip.open(save_path, 'wb') as f:
             torch.save(list(batch), f)
 
 if __name__ == '__main__':
@@ -75,7 +78,7 @@ if __name__ == '__main__':
                         help='base directory of gqn dataset')
     parser.add_argument('dataset', type=str, default="shepard_metzler_5_parts",
                         help='datasets to convert, eg. shepard_metzler_5_parts')
-    parser.add_argument('-b', '--batch-size', type=int, default=64,
+    parser.add_argument('-b', '--batch-size', type=int, default=36,
                         help='number of sequences in each output file')
     parser.add_argument('-m', '--mode', type=str, default='train',
                         help='whether to convert train or test')
@@ -89,6 +92,8 @@ if __name__ == '__main__':
     records = [os.path.join(data_dir, f) for f in sorted(os.listdir(data_dir))]
     records = [f for f in records if "tfrecord" in f]
 
-    with mp.Pool(processes=mp.cpu_count()) as pool:
-        f = partial(convert, batch_size=args.batch_size)
-        pool.map(f, records)
+    # with mp.Pool(processes=mp.cpu_count()) as pool:
+    #     f = partial(convert, batch_size=args.batch_size)
+    #     pool.map(f, records)
+    for record in records:
+        convert(record, args.batch_size)
