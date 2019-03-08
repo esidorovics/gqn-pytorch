@@ -18,7 +18,7 @@ def transform_viewpoint(v):
     return v_hat
 
 
-class RoomsRingCamera(Dataset):
+class GQN_Dataset(Dataset):
     """
     RoomsRing dataset. Based on the dataset provided
     in the GQN paper.
@@ -28,7 +28,7 @@ class RoomsRingCamera(Dataset):
     :param target_transform: transform on viewpoints
     """
     def __init__(self, root_dir, train=True, transform=None, target_transform=transform_viewpoint):
-        super(RoomsRingCamera, self).__init__()
+        super(GQN_Dataset, self).__init__()
         prefix = "train" if train else "test"
         self.root_dir = os.path.join(root_dir, prefix)
         self.records = sorted([p for p in os.listdir(self.root_dir) if "pt" in p])
@@ -60,16 +60,12 @@ class RoomsRingCamera(Dataset):
 
 if __name__ == '__main__':
     import cv2
-    import torchvision
-    import numpy as np
-    from PIL import Image
-    train_dataset = RoomsRingCamera(root_dir="../data/rooms_ring_camera")
-    valid_dataset = RoomsRingCamera(root_dir="../data/rooms_ring_camera", train=False)
-    img, v = train_dataset[5]
-    import torchvision
+    import random
+    train_dataset = GQN_Dataset(root_dir="data/rooms_ring_camera")
+    valid_dataset = GQN_Dataset(root_dir="data/rooms_ring_camera", train=False)
+    img, v = valid_dataset[1]
+    j = random.randint(0, 35)
     for i in range(10):
-        _img = img[34, i, :, :, :]
-        # _img = torchvision.transforms.ToPILImage()(_img)
-        # _img.save("../data/test_images/roomsring{}.png".format(i))
-        cv2.imwrite("../data/test_images/roomsring{}.png".format(i), _img.permute(1, 2, 0).numpy())
+        _img = img[j, i, :, :, :]
+        cv2.imwrite("data/test_images/roomsring{}.png".format(i), _img.permute(1, 2, 0).numpy())
 

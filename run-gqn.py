@@ -1,7 +1,7 @@
 """
 run-gqn.py
 
-Script to train the a GQN on the Shepard-Metzler dataset
+Script to train the a GQN dataset
 in accordance to the hyperparameter settings described in
 the supplementary materials of the paper.
 """
@@ -26,7 +26,7 @@ from ignite.handlers import ModelCheckpoint, Timer
 from ignite.metrics import RunningAverage
 
 from gqn import GenerativeQueryNetwork, partition, Annealer
-from datasets.shepardmetzler import ShepardMetzler
+from dataset import GQN_Dataset
 
 cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if cuda else "cpu")
@@ -38,14 +38,20 @@ if cuda: torch.cuda.manual_seed(99)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
+dataset_params = {
+    'rooms_ring_dataset': {'max_m': 5},
+    'shepart_metzler': {'max_m': 15}
+}
+
 if __name__ == '__main__':
-    parser = ArgumentParser(description='Generative Query Network on Shepard Metzler Example')
+    parser = ArgumentParser(description='Generative Query Network')
     parser.add_argument('--n_epochs', type=int, default=500, help='number of epochs run (default: 500)')
     parser.add_argument('--batch_size', type=int, default=1, help='multiple of batch size (default: 1)')
     parser.add_argument('--data_dir', type=str, help='location of data', default="train")
     parser.add_argument('--log_dir', type=str, help='location of logging', default="log")
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
     parser.add_argument('--data_parallel', type=bool, help='whether to parallelise based on data (default: False)', default=False)
+    parser.add_argument('--dataset', type=str, help='dataset name (default: rooms_ring_camera)', default='rooms_ring_dataset')
     args = parser.parse_args()
 
     # Create model and optimizer
@@ -59,17 +65,18 @@ if __name__ == '__main__':
     mu_scheme = Annealer(5 * 10 ** (-4), 5 * 10 ** (-5), 1.6 * 10 ** 6)
 
     # Load the dataset
-    train_dataset = ShepardMetzler(root_dir=args.data_dir)
-    valid_dataset = ShepardMetzler(root_dir=args.data_dir, train=False)
+    train_dataset = GQN_Dataset(root_dir=args.data_dir)
+    valid_dataset = GQN_Dataset(root_dir=args.data_dir, train=False)
 
     kwargs = {'num_workers': args.workers, 'pin_memory': True} if cuda else {}
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
     valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
+    max_m = dataset_params[args.dataset]['max_m']
 
     def step(engine, batch):
         x, v = batch
         x, v = x.to(device), v.to(device)
-        x, v, x_q, v_q = partition(x, v)
+        x, v, x_q, v_q = partition(x, v, max_m)
 
         # Reconstruction, representation and divergence
         x_mu, _, kl = model(x, v, x_q, v_q)
@@ -105,7 +112,7 @@ if __name__ == '__main__':
     ProgressBar().attach(trainer, metric_names=metric_names)
 
     # Model checkpointing
-    checkpoint_handler = ModelCheckpoint("./", "checkpoint", save_interval=1, n_saved=3,
+    checkpoint_handler = ModelCheckpoint("./checkpoints", "checkpoint", save_interval=1, n_saved=3,
                                          require_empty=False)
     trainer.add_event_handler(event_name=Events.EPOCH_COMPLETED, handler=checkpoint_handler,
                               to_save={'model': model.state_dict, 'optimizer': optimizer.state_dict,

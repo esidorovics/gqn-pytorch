@@ -23,7 +23,7 @@ class Annealer(object):
         return value
 
 
-def partition(images, viewpoints):
+def partition(images, viewpoints, max_m):
     """
     Partition batch into context and query sets.
     :param images
@@ -39,7 +39,7 @@ def partition(images, viewpoints):
     viewpoints = viewpoints.view((-1, m, *v_dims))
 
     # Sample random number of views
-    n_context = random.randint(2, m - 1)
+    n_context = random.randint(2, max_m+1)
     indices = random.sample([i for i in range(m)], n_context)
 
     # Partition into context and query sets
@@ -49,3 +49,23 @@ def partition(images, viewpoints):
     x_q, v_q = images[:, query_idx], viewpoints[:, query_idx]
 
     return x, v, x_q, v_q
+
+
+if __name__ == '__main__':
+    from dataset import GQN_Dataset
+    import torch
+    import cv2
+    train_dataset = GQN_Dataset(root_dir="../data/rooms_ring_camera")
+    img, v = train_dataset[1]
+    b, m, *x_dims = img.shape
+    print(img.shape, v.shape)
+    img = img.view(1, *img.shape)
+    v = v.view(1, *v.shape)
+    print(img.shape, v.shape)
+    x, v, x_q, v_q = partition(img, v, 5)
+    print(x.shape, v.shape)
+    print(x_q.shape, v_q.shape)
+    cv2.imwrite("../data/test_images/roomsring-t.png", x_q[3].permute(1, 2, 0).numpy())
+
+
+

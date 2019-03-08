@@ -106,6 +106,7 @@ class GeneratorNetwork(nn.Module):
         # Up/down-sampling primitives
         self.upsample   = nn.ConvTranspose2d(h_dim, h_dim, kernel_size=SCALE, stride=SCALE, padding=0, bias=False)
         self.downsample = nn.Conv2d(x_dim, x_dim, kernel_size=SCALE, stride=SCALE, padding=0, bias=False)
+        self.downsample_u = nn.Conv2d(h_dim, h_dim, kernel_size=SCALE, stride=SCALE, padding=0, bias=False)
 
     def forward(self, x, v, r):
         """
@@ -142,12 +143,12 @@ class GeneratorNetwork(nn.Module):
             prior_distribution = Normal(p_mu, F.softplus(p_std))
 
             # Inference state update
-            u_hidden = self.downsample(u)
+            u_hidden = self.downsample_u(u)
             inference = self.inference_core if self.share else self.inference_core[l]
-            hidden_i, cell_i = inference(torch.cat([hidden_g, u_hidden, x, v, r], dim=1), [hidden_i, cell_i])
+            hidden_i_next, cell_i_next = inference(torch.cat([hidden_g, u_hidden, x, v, r], dim=1), [hidden_i, cell_i])
 
             # Posterior factor (eta e network)
-            q_mu, q_std = torch.chunk(self.posterior_density(hidden_i), 2, dim=1)
+            q_mu, q_std = torch.chunk(self.posterior_density(hidden_i_next), 2, dim=1)
             posterior_distribution = Normal(q_mu, F.softplus(q_std))
 
             # Posterior sample
@@ -156,6 +157,8 @@ class GeneratorNetwork(nn.Module):
             # Generator state update
             generator = self.generator_core if self.share else self.generator_core[l]
             hidden_g, cell_g = generator(torch.cat([z, v, r], dim=1), [hidden_g, cell_g])
+
+            hidden_i, cell_i = hidden_i_next, cell_i_next
 
             # Calculate u
             u = self.upsample(hidden_g) + u
