@@ -15,6 +15,7 @@ import torch.nn as nn
 from torch.distributions import Normal
 from torch.utils.data import DataLoader
 from torchvision.utils import make_grid
+import os
 
 # TensorboardX
 from tensorboardX import SummaryWriter
@@ -64,6 +65,23 @@ if __name__ == '__main__':
     sigma_scheme = Annealer(2.0, 0.7, 2 * 10 ** 5)
     mu_scheme = Annealer(5 * 10 ** (-4), 5 * 10 ** (-5), 1.6 * 10 ** 6)
 
+    if len(os.listdir("./checkpoints/"))>0:
+        # {"init": self.init, "delta": self.delta, "steps": self.steps, "s": self.s}
+        checkpoint = torch.load("./checkpoints/checkpoint_model_4000.pth")
+        ch_optimizer = torch.load("./checkpoints/checkpoint_optimizer_4000.pth")
+
+        # print(checkpoint.keys())
+        model.load_state_dict(checkpoint)
+        optimizer.load_state_dict(ch_optimizer)
+        annealers = torch.load("./checkpoints/checkpoint_annealers_4000.pth")
+        sigma, mu = annealers
+        sigma_scheme = Annealer(sigma['init'], sigma['delta'], sigma['steps'])
+        sigma_scheme.s = sigma['s']
+        mu_scheme = Annealer(mu['init'], mu['delta'], mu['steps'])
+        mu_scheme.s = mu['s']
+        annealers = torch.load("./checkpoints/checkpoint_annealers_4000.pth")
+        print("Checkpoint loaded")
+
     # Load the dataset
     train_dataset = GQN_Dataset(root_dir=args.data_dir)
     valid_dataset = GQN_Dataset(root_dir=args.data_dir, train=False)
@@ -72,6 +90,8 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
     valid_loader = DataLoader(valid_dataset, batch_size=args.batch_size, shuffle=True, **kwargs)
     max_m = dataset_params[args.dataset]['max_m']
+
+
 
     def step(engine, batch):
         x, v = batch
@@ -89,9 +109,9 @@ if __name__ == '__main__':
         kl_divergence  = torch.mean(torch.sum(kl, dim=[1, 2, 3]))
 
         # Evidence lower bound
-        elbo = likelihood - kl_divergence
-        loss = -elbo
-        loss.backward()
+        elbo = likelihood - kl_divergence #-30 vs -1
+        loss = -elbo #30 vs 1
+        loss.backward() #
 
         optimizer.step()
         optimizer.zero_grad()
@@ -112,10 +132,10 @@ if __name__ == '__main__':
     ProgressBar().attach(trainer, metric_names=metric_names)
 
     # Model checkpointing
-    checkpoint_handler = ModelCheckpoint("./checkpoints", "checkpoint", save_interval=1, n_saved=3,
+    checkpoint_handler = ModelCheckpoint("./checkpoints", "checkpoint", save_interval=1000, n_saved=3,
                                          require_empty=False)
-    trainer.add_event_handler(event_name=Events.EPOCH_COMPLETED, handler=checkpoint_handler,
-                              to_save={'model': model.state_dict, 'optimizer': optimizer.state_dict,
+    trainer.add_event_handler(event_name=Events.ITERATION_COMPLETED, handler=checkpoint_handler,
+                              to_save={'model': model.state_dict(), 'optimizer': optimizer.state_dict(),
                                        'annealers': (sigma_scheme.data, mu_scheme.data)})
 
     timer = Timer(average=True).attach(trainer, start=Events.EPOCH_STARTED, resume=Events.ITERATION_STARTED,
@@ -134,7 +154,7 @@ if __name__ == '__main__':
         with torch.no_grad():
             x, v = engine.state.batch
             x, v = x.to(device), v.to(device)
-            x, v, x_q, v_q = partition(x, v)
+            x, v, x_q, v_q = partition(x, v, max_m)
 
             x_mu, r, _ = model(x, v, x_q, v_q)
 
@@ -152,7 +172,7 @@ if __name__ == '__main__':
         with torch.no_grad():
             x, v = next(iter(valid_loader))
             x, v = x.to(device), v.to(device)
-            x, v, x_q, v_q = partition(x, v)
+            x, v, x_q, v_q = partition(x, v, max_m)
 
             # Reconstruction, representation and divergence
             x_mu, _, kl = model(x, v, x_q, v_q)
@@ -176,7 +196,7 @@ if __name__ == '__main__':
         if isinstance(e, KeyboardInterrupt) and (engine.state.iteration > 1):
             import warnings
             warnings.warn('KeyboardInterrupt caught. Exiting gracefully.')
-            checkpoint_handler(engine, { 'model_exception': model })
+            checkpoint_handler(engine, { 'exception': model })
         else: raise e
 
     trainer.run(train_loader, args.n_epochs)

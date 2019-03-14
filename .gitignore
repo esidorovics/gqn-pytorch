@@ -1,7 +1,9 @@
-.idea
+.idea/
 *.DS_Store
 data/
 *.pyc
 logs
-__pychache__
-checkpoints
+*__pycache__*
+checkpoints/
+chkpnts/
+log

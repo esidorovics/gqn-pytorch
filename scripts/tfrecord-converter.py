@@ -10,14 +10,15 @@ scripts.
 """
 import os, gzip, torch
 import tensorflow as tf
-import numpy as np #, multiprocessing as mp
+import numpy as np
+import multiprocessing as mp
 from functools import partial
 from itertools import islice, chain
 from argparse import ArgumentParser
 
 # disable logging and gpu
 tf.logging.set_verbosity(tf.logging.ERROR)
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 POSE_DIM, IMG_DIM, SEQ_DIM = 5, 64, 10
 
@@ -92,7 +93,7 @@ if __name__ == '__main__':
     records = [os.path.join(data_dir, f) for f in sorted(os.listdir(data_dir))]
     records = [f for f in records if "tfrecord" in f]
 
-    # with mp.Pool(processes=mp.cpu_count()) as pool:
+    # with mp.Pool(processes=mp.cpu_count()-2) as pool:
     #     f = partial(convert, batch_size=args.batch_size)
     #     pool.map(f, records)
     for record in records:
