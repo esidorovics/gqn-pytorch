@@ -1,6 +1,7 @@
 .idea/
 *.DS_Store
 data/
+.ipynb_checkpoints/
 *.pyc
 logs
 *__pycache__*

@@ -60,7 +60,7 @@ class GenerativeQueryNetwork(nn.Module):
         # for computing error
         return (x_mu, r, kl)
 
-    def sample(self, context_x, context_v, query_v, sigma):
+    def sample(self, context_x, context_v, query_v):
         """
         Sample from the network given some context and viewpoint.
 
@@ -85,5 +85,4 @@ class GenerativeQueryNetwork(nn.Module):
         r = torch.sum(phi, dim=1)
 
         x_mu = self.generator.sample((h, w), query_v, r)
-        x_sample = Normal(x_mu, sigma).sample()
-        return x_sample
+        return x_mu

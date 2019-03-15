@@ -206,4 +206,4 @@ class GeneratorNetwork(nn.Module):
 
         x_mu = self.observation_density(u)
         
-        return torch.sigmoid(x_mu)
+        return x_mu
