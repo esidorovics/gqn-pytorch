@@ -177,6 +177,8 @@ if __name__ == '__main__':
 
             # Reconstruction, representation and divergence
             x_mu, _, kl = model(x, v, x_q, v_q)
+            x_mu *=255
+            x_q *=255
 
             # Validate at last sigma
             ll = Normal(x_mu, sigma_scheme.recent).log_prob(x_q)

@@ -18,6 +18,11 @@ def transform_viewpoint(v):
     return v_hat
 
 
+def transform_image(x):
+    x /= 255
+    return x
+
+
 class GQN_Dataset(Dataset):
     """
     RoomsRing dataset. Based on the dataset provided
@@ -27,7 +32,7 @@ class GQN_Dataset(Dataset):
     :param transform: transform on images
     :param target_transform: transform on viewpoints
     """
-    def __init__(self, root_dir, train=True, transform=None, target_transform=transform_viewpoint):
+    def __init__(self, root_dir, train=True, transform=transform_image, target_transform=transform_viewpoint):
         super(GQN_Dataset, self).__init__()
         prefix = "train" if train else "test"
         self.root_dir = os.path.join(root_dir, prefix)
@@ -62,11 +67,15 @@ class GQN_Dataset(Dataset):
 if __name__ == '__main__':
     import cv2
     import random
+    import numpy as np
     train_dataset = GQN_Dataset(root_dir="data/rooms_ring_camera")
     valid_dataset = GQN_Dataset(root_dir="data/rooms_ring_camera", train=False)
     img, v = valid_dataset[1]
     j = random.randint(0, 35)
+    print(j)
     for i in range(10):
         _img = img[j, i, :, :, :]
-        cv2.imwrite("data/test_images/roomsring{}.png".format(i), _img.permute(1, 2, 0).numpy())
+        _img = _img.numpy()
+        _img = np.moveaxis(_img, [0, 1, 2], [-1, 0, 1])
+        cv2.imwrite("data/test_images/roomsring{}.png".format(i), _img)
 
