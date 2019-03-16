@@ -148,7 +148,7 @@ class GeneratorNetwork(nn.Module):
             hidden_i_next, cell_i_next = inference(torch.cat([hidden_g, u_hidden, x, v, r], dim=1), [hidden_i, cell_i])
 
             # Posterior factor (eta e network)
-            q_mu, q_std = torch.chunk(self.posterior_density(hidden_i_next), 2, dim=1)
+            q_mu, q_std = torch.chunk(self.posterior_density(hidden_i), 2, dim=1)
             posterior_distribution = Normal(q_mu, F.softplus(q_std))
 
             # Posterior sample
