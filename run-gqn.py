@@ -53,10 +53,11 @@ if __name__ == '__main__':
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
     parser.add_argument('--data_parallel', type=bool, help='whether to parallelise based on data (default: False)', default=False)
     parser.add_argument('--dataset', type=str, help='dataset name (default: rooms_ring_camera)', default='rooms_ring_dataset')
+    parser.add_argument('--L', type=int, help='number of generative steps (def: 8)', default=8)
     args = parser.parse_args()
 
     # Create model and optimizer
-    model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, L=12).to(device)
+    model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, L=args.L).to(device)
     model = nn.DataParallel(model) if args.data_parallel else model
 
     optimizer = torch.optim.Adam(model.parameters(), lr=5 * 10 ** (-4))
@@ -109,7 +110,7 @@ if __name__ == '__main__':
         kl_divergence  = torch.mean(torch.sum(kl, dim=[1, 2, 3]))
 
         # Evidence lower bound
-        elbo = likelihood - kl_divergence #-30 vs -1
+        elbo = likelihood - kl_divergence
         loss = -elbo #30 vs 1
         loss.backward() #
 
