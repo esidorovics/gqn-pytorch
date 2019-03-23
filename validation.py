@@ -15,33 +15,32 @@ x = x.view((1, *x.shape))
 v = v.view((1, *v.shape))
 
 max_m=5
-x, v, x_q, v_q = partition(x, v, max_m)
+x, v, x_q, v_q = partition(x, v, max_m, 5)
 batch, *_ = x.shape
 print(x.shape)
 print(v.shape)
 print(x_q.shape)
 device = torch.device("cpu")
-model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, L=12).to(device)
-# checkpoint = torch.load("./checkpoints/checkpoint_model_57000.pth")
-checkpoint = torch.load("./chkpnts/checkpoint_model_29000.pth")
+model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, L=6).to(device)
+checkpoint = torch.load("./checkpoints/checkpoint_model_140000.pth") #
+# checkpoint = torch.load("./chkpnts/current/checkpoint_model_40000.pth") #520
+# checkpoint = torch.load("./chkpnts/current/checkpoint_model_100000.pth") #485
 model.load_state_dict(checkpoint)
 
-x_mu = model.sample(x, v, v_q)
-ll = Normal(x_mu, 1).log_prob(x_q)
-ll3 = Normal(x_mu, 1).log_prob(x_q)
-ll2 = Normal(x_q , 1).log_prob(x_q)
-ll = torch.mean(torch.sum(ll, dim=[1, 2, 3]))
-ll2 = torch.mean(torch.sum(ll2, dim=[1, 2, 3]))
-ll3 = torch.mean(torch.sum(ll3, dim=[1, 2, 3]))
-print(ll)
-print(ll2)
-print(ll3)
+x_mu = model.sample(x, v, v_q)*255
+# x_mu, r, kl = model(x, v, x_q, v_q)
+# print(kl.shape)
+ll = Normal(x_mu, 0.1).log_prob(x_q*255)
+l = torch.mean(torch.sum(ll, dim=[1, 2, 3]))
+print(l.detach().cpu().numpy()/1000)
 x_mu = x_mu.detach().cpu().numpy()
-print(x_mu)
+print(np.std(x_mu))
 
 
 x = x.numpy()
-x_q = x_q.numpy()
+x*=255
+x_q = x_q.numpy()*255
+print(np.std(x_q))
 x = np.moveaxis(x, [2, 3, 4], [-1, 2, 3])
 x_q = np.moveaxis(x_q, [1, 2, 3], [-1, -3, -2])
 x_mu = np.moveaxis(x_mu, [1, 2, 3], [-1, -3, -2])

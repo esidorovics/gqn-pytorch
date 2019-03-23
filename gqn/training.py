@@ -23,7 +23,7 @@ class Annealer(object):
         return value
 
 
-def partition(images, viewpoints, max_m):
+def partition(images, viewpoints, max_m, specific_n=None):
     """
     Partition batch into context and query sets.
     :param images
@@ -40,6 +40,9 @@ def partition(images, viewpoints, max_m):
 
     # Sample random number of views
     n_context = random.randint(2, max_m+1)
+    if specific_n is not None:
+        n_context = specific_n+1
+        random.seed(2)
     indices = random.sample([i for i in range(m)], n_context)
 
     # Partition into context and query sets

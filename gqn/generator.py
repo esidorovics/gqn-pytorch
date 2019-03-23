@@ -51,11 +51,12 @@ class Conv2dLSTMCell(nn.Module):
         :return new (hidden, cell) pair
         """
         (hidden, cell) = states
+        inputs = torch.cat([hidden, input], dim=1)
 
-        forget_gate = torch.sigmoid(self.forget(input))
-        input_gate  = torch.sigmoid(self.input(input))
-        output_gate = torch.sigmoid(self.output(input))
-        state_gate  = torch.tanh(self.state(input))
+        forget_gate = torch.sigmoid(self.forget(inputs))
+        input_gate  = torch.sigmoid(self.input(inputs))
+        output_gate = torch.sigmoid(self.output(inputs))
+        state_gate  = torch.tanh(self.state(inputs))
 
         # Update internal cell state
         cell = forget_gate * cell + input_gate * state_gate
@@ -80,6 +81,7 @@ class GeneratorNetwork(nn.Module):
     """
     def __init__(self, x_dim, v_dim, r_dim, z_dim=64, h_dim=128, L=12, share=True):
         super(GeneratorNetwork, self).__init__()
+        print(L)
         self.L = L
         self.z_dim = z_dim
         self.h_dim = h_dim
@@ -87,8 +89,8 @@ class GeneratorNetwork(nn.Module):
 
         # Core computational units
         kwargs = dict(kernel_size=5, stride=1, padding=2)
-        inference_args = dict(in_channels=v_dim + r_dim + x_dim + h_dim + h_dim, out_channels=h_dim, **kwargs)
-        generator_args = dict(in_channels=v_dim + r_dim + z_dim, out_channels=h_dim, **kwargs)
+        inference_args = dict(in_channels=v_dim + r_dim + x_dim + h_dim + h_dim + h_dim, out_channels=h_dim, **kwargs)
+        generator_args = dict(in_channels=v_dim + r_dim + z_dim + h_dim, out_channels=h_dim, **kwargs)
         if self.share:
             self.inference_core = Conv2dLSTMCell(**inference_args)
             self.generator_core = Conv2dLSTMCell(**generator_args)
@@ -168,7 +170,7 @@ class GeneratorNetwork(nn.Module):
 
         x_mu = self.observation_density(u)
 
-        return torch.sigmoid(x_mu), kl
+        return torch.sigmoid(x_mu)*255, kl
 
     def sample(self, x_shape, v, r):
         """

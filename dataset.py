@@ -37,7 +37,7 @@ class GQN_Dataset(Dataset):
         prefix = "train" if train else "test"
         self.root_dir = os.path.join(root_dir, prefix)
         self.records = sorted([p for p in os.listdir(self.root_dir) if "pt" in p])
-        self.records = self.records[:int(len(self.records)*0.3)]
+        # self.records = self.records[:int(len(self.records)*0.3)]
         self.transform = transform
         self.target_transform = target_transform
 

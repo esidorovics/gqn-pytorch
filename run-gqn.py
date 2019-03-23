@@ -46,14 +46,14 @@ dataset_params = {
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='Generative Query Network')
-    parser.add_argument('--n_epochs', type=int, default=500, help='number of epochs run (default: 500)')
+    parser.add_argument('--n_epochs', type=int, default=7, help='number of epochs run (default: 500)')
     parser.add_argument('--batch_size', type=int, default=1, help='multiple of batch size (default: 1)')
     parser.add_argument('--data_dir', type=str, help='location of data', default="train")
     parser.add_argument('--log_dir', type=str, help='location of logging', default="log")
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
     parser.add_argument('--data_parallel', type=bool, help='whether to parallelise based on data (default: False)', default=False)
     parser.add_argument('--dataset', type=str, help='dataset name (default: rooms_ring_camera)', default='rooms_ring_dataset')
-    parser.add_argument('--L', type=int, help='number of generative steps (def: 8)', default=8)
+    parser.add_argument('--L', type=int, help='number of generative steps (def: 8)', default=6)
     args = parser.parse_args()
 
     # Create model and optimizer
@@ -63,24 +63,24 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=5 * 10 ** (-4))
 
     # Rate annealing schemes
-    sigma_scheme = Annealer(2.0, 0.7, 2 * 10 ** 5)
+    sigma_scheme = Annealer(2.0, 0.5, 2 * 10 ** 5)
     mu_scheme = Annealer(5 * 10 ** (-4), 5 * 10 ** (-5), 1.6 * 10 ** 6)
 
     if len(os.listdir("./checkpoints/"))>0:
         # {"init": self.init, "delta": self.delta, "steps": self.steps, "s": self.s}
-        checkpoint = torch.load("./checkpoints/checkpoint_model_4000.pth")
-        ch_optimizer = torch.load("./checkpoints/checkpoint_optimizer_4000.pth")
+        checkpoint = torch.load("./checkpoints/checkpoint_model_65000.pth")
+        ch_optimizer = torch.load("./checkpoints/checkpoint_optimizer_65000.pth")
 
         # print(checkpoint.keys())
         model.load_state_dict(checkpoint)
         optimizer.load_state_dict(ch_optimizer)
-        annealers = torch.load("./checkpoints/checkpoint_annealers_4000.pth")
+        annealers = torch.load("./checkpoints/checkpoint_annealers_65000.pth")
         sigma, mu = annealers
         sigma_scheme = Annealer(sigma['init'], sigma['delta'], sigma['steps'])
         sigma_scheme.s = sigma['s']
         mu_scheme = Annealer(mu['init'], mu['delta'], mu['steps'])
         mu_scheme.s = mu['s']
-        annealers = torch.load("./checkpoints/checkpoint_annealers_4000.pth")
+        annealers = torch.load("./checkpoints/checkpoint_annealers_65000.pth")
         print("Checkpoint loaded")
 
     # Load the dataset
@@ -104,14 +104,14 @@ if __name__ == '__main__':
 
         # Log likelihood
         sigma = next(sigma_scheme)
-        ll = Normal(x_mu, sigma).log_prob(x_q)
+        ll = Normal(x_mu, sigma).log_prob(x_q*255)
 
         likelihood     = torch.mean(torch.sum(ll, dim=[1, 2, 3]))
         kl_divergence  = torch.mean(torch.sum(kl, dim=[1, 2, 3]))
 
         # Evidence lower bound
         elbo = likelihood - kl_divergence
-        loss = -elbo #30 vs 1
+        loss = -elbo
         loss.backward() #
 
         optimizer.step()
@@ -133,7 +133,7 @@ if __name__ == '__main__':
     ProgressBar().attach(trainer, metric_names=metric_names)
 
     # Model checkpointing
-    checkpoint_handler = ModelCheckpoint("./checkpoints", "checkpoint", save_interval=1000, n_saved=3,
+    checkpoint_handler = ModelCheckpoint("./checkpoints", "checkpoint", save_interval=10000,
                                          require_empty=False)
     trainer.add_event_handler(event_name=Events.ITERATION_COMPLETED, handler=checkpoint_handler,
                               to_save={'model': model.state_dict(), 'optimizer': optimizer.state_dict(),
