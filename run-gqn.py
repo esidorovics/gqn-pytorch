@@ -57,7 +57,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if not(os.path.exists("main.log")):
         with open("main.log", "w") as f:
-            f.write("")
+            f.write("step,elbo,ll,kl,sigma,mu\n")
 
     # Create model and optimizer
     model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, L=args.L).to(device)
