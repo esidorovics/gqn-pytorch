@@ -55,6 +55,9 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', type=str, help='dataset name (default: rooms_ring_camera)', default='rooms_ring_dataset')
     parser.add_argument('--L', type=int, help='number of generative steps (def: 8)', default=6)
     args = parser.parse_args()
+    if not(os.path.exists("main.log")):
+        with open("main.log", "w") as f:
+            f.write("")
 
     # Create model and optimizer
     model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, L=args.L).to(device)
@@ -120,9 +123,14 @@ if __name__ == '__main__':
         with torch.no_grad():
             # Anneal learning rate
             mu = next(mu_scheme)
-            i = engine.state.iteration
+            i = mu_scheme.s
             for group in optimizer.param_groups:
                 group["lr"] = mu * math.sqrt(1 - 0.999 ** i) / (1 - 0.9 ** i)
+
+        if sigma_scheme.s%10:
+            with open("main.log", "a") as f:
+                output = list(map(str, [sigma_scheme.s, -elbo.item(), -likelihood.item(), kl_divergence.item(), sigma, mu]))
+                f.write(",".join(output)+"\n")
 
         return {"elbo": elbo.item(), "kl": kl_divergence.item(), "sigma": sigma, "mu": mu}
 

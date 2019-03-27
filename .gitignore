@@ -8,3 +8,5 @@ logs
 checkpoints/
 chkpnts/
 log
+train.sh
+main.log
