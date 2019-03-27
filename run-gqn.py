@@ -58,6 +58,9 @@ if __name__ == '__main__':
     if not(os.path.exists("main.log")):
         with open("main.log", "w") as f:
             f.write("step,elbo,ll,kl,sigma,mu\n")
+    if not(os.path.exists("l2.log")):
+        with open("l2.log", "w") as f:
+            f.write("step,l2\n")
 
     # Create model and optimizer
     model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, L=args.L).to(device)
@@ -126,6 +129,11 @@ if __name__ == '__main__':
             i = mu_scheme.s
             for group in optimizer.param_groups:
                 group["lr"] = mu * math.sqrt(1 - 0.999 ** i) / (1 - 0.9 ** i)
+
+            if not mu_scheme.s % 1000:
+                mse = torch.mean(torch.sum((x_mu - x_q) ** 2, dim=[1, 2, 3])).detach().cpu().numpy()
+                with open("l2.log", "a") as f:
+                    f.write(str(mu_scheme.s)+","+str(mse)+"\n")
 
         if not sigma_scheme.s%10:
             with open("main.log", "a") as f:
