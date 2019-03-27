@@ -127,7 +127,7 @@ if __name__ == '__main__':
             for group in optimizer.param_groups:
                 group["lr"] = mu * math.sqrt(1 - 0.999 ** i) / (1 - 0.9 ** i)
 
-        if sigma_scheme.s%10:
+        if not sigma_scheme.s%10:
             with open("main.log", "a") as f:
                 output = list(map(str, [sigma_scheme.s, -elbo.item(), -likelihood.item(), kl_divergence.item(), sigma, mu]))
                 f.write(",".join(output)+"\n")
