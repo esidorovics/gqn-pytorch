@@ -15,6 +15,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal, kl_divergence
+from torch.nn.functional import interpolate
 
 
 class Conv2dLSTMCell(nn.Module):
@@ -81,7 +82,6 @@ class GeneratorNetwork(nn.Module):
     """
     def __init__(self, x_dim, v_dim, r_dim, z_dim=64, h_dim=128, L=12, share=True):
         super(GeneratorNetwork, self).__init__()
-        print(L)
         self.L = L
         self.z_dim = z_dim
         self.h_dim = h_dim
@@ -107,8 +107,6 @@ class GeneratorNetwork(nn.Module):
 
         # Up/down-sampling primitives
         self.upsample   = nn.ConvTranspose2d(h_dim, h_dim, kernel_size=SCALE, stride=SCALE, padding=0, bias=False)
-        self.downsample = nn.Conv2d(x_dim, x_dim, kernel_size=SCALE, stride=SCALE, padding=0, bias=False)
-        self.downsample_u = nn.Conv2d(h_dim, h_dim, kernel_size=SCALE, stride=SCALE, padding=0, bias=False)
 
     def forward(self, x, v, r):
         """
@@ -124,7 +122,7 @@ class GeneratorNetwork(nn.Module):
         kl = 0
 
         # Downsample x, upsample v and r
-        x = self.downsample(x)
+        x = interpolate(x, scale_factor=0.25, mode='area')
         v = v.view(batch_size, -1, 1, 1).repeat(1, 1, h // SCALE, w // SCALE)
         if r.size(2) != h // SCALE:
             r = r.repeat(1, 1, h // SCALE, w // SCALE)
@@ -144,11 +142,6 @@ class GeneratorNetwork(nn.Module):
             p_mu, p_std = torch.chunk(self.prior_density(hidden_g), 2, dim=1)
             prior_distribution = Normal(p_mu, F.softplus(p_std))
 
-            # Inference state update
-            u_hidden = self.downsample_u(u)
-            inference = self.inference_core if self.share else self.inference_core[l]
-            hidden_i_next, cell_i_next = inference(torch.cat([hidden_g, u_hidden, x, v, r], dim=1), [hidden_i, cell_i])
-
             # Posterior factor (eta e network)
             q_mu, q_std = torch.chunk(self.posterior_density(hidden_i), 2, dim=1)
             posterior_distribution = Normal(q_mu, F.softplus(q_std))
@@ -156,11 +149,16 @@ class GeneratorNetwork(nn.Module):
             # Posterior sample
             z = posterior_distribution.rsample()
 
+            # Inference state update
+            u_hidden = interpolate(u, scale_factor=0.25, mode='area')
+            inference = self.inference_core if self.share else self.inference_core[l]
+            hidden_i, cell_i = inference(torch.cat([hidden_g, u_hidden, x, v, r], dim=1), [hidden_i, cell_i])
+
+
             # Generator state update
             generator = self.generator_core if self.share else self.generator_core[l]
             hidden_g, cell_g = generator(torch.cat([z, v, r], dim=1), [hidden_g, cell_g])
 
-            hidden_i, cell_i = hidden_i_next, cell_i_next
 
             # Calculate u
             u = self.upsample(hidden_g) + u
