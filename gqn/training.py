@@ -7,7 +7,7 @@ class Annealer(object):
         self.delta = delta
         self.steps = steps
         self.s = 0
-        self.data = self.__repr__()
+        self.data = {"init": self.init, "delta": self.delta, "steps": self.steps, "s": self.s}
         self.recent = init
 
     def __repr__(self):
@@ -18,6 +18,7 @@ class Annealer(object):
 
     def __next__(self):
         self.s += 1
+        self.data['s'] = self.s
         value = max(self.delta + (self.init - self.delta) * (1 - self.s / self.steps), self.delta)
         self.recent = value
         return value

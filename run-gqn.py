@@ -74,20 +74,21 @@ if __name__ == '__main__':
 
     if len(os.listdir("./checkpoints/"))>0:
         # {"init": self.init, "delta": self.delta, "steps": self.steps, "s": self.s}
-        checkpoint = torch.load("./checkpoints/checkpoint_model_65000.pth")
-        ch_optimizer = torch.load("./checkpoints/checkpoint_optimizer_65000.pth")
+        checkpoint = torch.load("./checkpoints/checkpoint_model_50000.pth")
+        ch_optimizer = torch.load("./checkpoints/checkpoint_optimizer_50000.pth")
 
         # print(checkpoint.keys())
         model.load_state_dict(checkpoint)
         optimizer.load_state_dict(ch_optimizer)
-        annealers = torch.load("./checkpoints/checkpoint_annealers_65000.pth")
+        annealers = torch.load("./checkpoints/checkpoint_annealers_50000.pth")
         sigma, mu = annealers
         sigma_scheme = Annealer(sigma['init'], sigma['delta'], sigma['steps'])
-        sigma_scheme.s = sigma['s']
+        sigma_scheme.s = 50000
         mu_scheme = Annealer(mu['init'], mu['delta'], mu['steps'])
-        mu_scheme.s = mu['s']
-        annealers = torch.load("./checkpoints/checkpoint_annealers_65000.pth")
+        mu_scheme.s = 50000
+        annealers = torch.load("./checkpoints/checkpoint_annealers_50000.pth")
         print("Checkpoint loaded")
+        print(mu_scheme.s)
 
     # Load the dataset
     train_dataset = GQN_Dataset(root_dir=args.data_dir)
@@ -122,6 +123,7 @@ if __name__ == '__main__':
 
         optimizer.step()
         optimizer.zero_grad()
+
 
         with torch.no_grad():
             # Anneal learning rate
