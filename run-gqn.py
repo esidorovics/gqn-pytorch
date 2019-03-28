@@ -130,11 +130,6 @@ if __name__ == '__main__':
             for group in optimizer.param_groups:
                 group["lr"] = mu * math.sqrt(1 - 0.999 ** i) / (1 - 0.9 ** i)
 
-            if not mu_scheme.s % 1000:
-                mse = torch.mean(torch.sum((x_mu - x_q) ** 2, dim=[1, 2, 3])).detach().cpu().numpy()
-                with open("l2.log", "a") as f:
-                    f.write(str(mu_scheme.s)+","+str(mse)+"\n")
-
         if not sigma_scheme.s%10:
             with open("main.log", "a") as f:
                 output = list(map(str, [sigma_scheme.s, -elbo.item(), -likelihood.item(), kl_divergence.item(), sigma, mu]))
@@ -149,7 +144,7 @@ if __name__ == '__main__':
     ProgressBar().attach(trainer, metric_names=metric_names)
 
     # Model checkpointing
-    checkpoint_handler = ModelCheckpoint("./checkpoints", "checkpoint", save_interval=10000,
+    checkpoint_handler = ModelCheckpoint("./checkpoints", "checkpoint", save_interval=10000, n_saved=10,
                                          require_empty=False)
     trainer.add_event_handler(event_name=Events.ITERATION_COMPLETED, handler=checkpoint_handler,
                               to_save={'model': model.state_dict(), 'optimizer': optimizer.state_dict(),
