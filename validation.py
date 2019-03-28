@@ -22,13 +22,13 @@ print(v.shape)
 print(x_q.shape)
 device = torch.device("cpu")
 model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, L=6).to(device)
-checkpoint = torch.load("./checkpoints/checkpoint_model_140000.pth") #
+checkpoint = torch.load("./checkpoints/checkpoint_model_50000.pth") #
 # checkpoint = torch.load("./chkpnts/current/checkpoint_model_40000.pth") #520
 # checkpoint = torch.load("./chkpnts/current/checkpoint_model_100000.pth") #485
 model.load_state_dict(checkpoint)
 
-x_mu = model.sample(x, v, v_q)*255
-# x_mu, r, kl = model(x, v, x_q, v_q)
+# x_mu = model.sample(x, v, v_q)*255
+x_mu, r, kl = model(x, v, x_q, v_q)
 # print(kl.shape)
 ll = Normal(x_mu, 0.1).log_prob(x_q*255)
 l = torch.mean(torch.sum(ll, dim=[1, 2, 3]))
