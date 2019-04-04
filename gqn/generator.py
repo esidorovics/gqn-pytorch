@@ -168,7 +168,7 @@ class GeneratorNetwork(nn.Module):
 
         x_mu = self.observation_density(u)
 
-        return torch.sigmoid(x_mu)*255, kl
+        return torch.sigmoid(x_mu), kl
 
     def sample(self, x_shape, v, r):
         """
