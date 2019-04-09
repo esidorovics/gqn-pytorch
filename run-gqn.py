@@ -54,7 +54,8 @@ if __name__ == '__main__':
     parser.add_argument('--data_parallel', type=bool, help='whether to parallelise based on data (default: False)', default=False)
     parser.add_argument('--dataset', type=str, help='dataset name (default: rooms_ring_camera)', default='rooms_ring_dataset')
     parser.add_argument('--L', type=int, help='number of generative steps (def: 6)', default=6)
-    parser.add_argument('--pool', type=bool, help='number of generative steps (def: 6)', default=False)
+    parser.add_argument('--pool', type=bool, help='Whether to use Pool representation', default=False)
+    parser.add_argument('--dgf_dim', type=int, help='bottleneck size(default=256)', default=256)
     args = parser.parse_args()
     if not(os.path.exists("main.log")):
         with open("main.log", "w") as f:
@@ -64,7 +65,7 @@ if __name__ == '__main__':
             f.write("step,l2\n")
 
     # Create model and optimizer
-    model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, L=args.L, pool=args.pool).to(device)
+    model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, dgf_dim=args.dgf_dim, L=args.L, pool=args.pool).to(device)
     model = nn.DataParallel(model) if args.data_parallel else model
 
     optimizer = torch.optim.Adam(model.parameters(), lr=5 * 10 ** (-4))
