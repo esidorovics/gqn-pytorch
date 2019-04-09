@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.distributions import Normal
 
 from .representation import TowerRepresentation
 from .generator import GeneratorNetwork
-
 
 class GenerativeQueryNetwork(nn.Module):
     """
@@ -19,12 +19,16 @@ class GenerativeQueryNetwork(nn.Module):
     :param h_dim: hidden channels in LSTM
     :param L: Number of refinements of density
     """
-    def __init__(self, x_dim, v_dim, r_dim, h_dim, z_dim, L=12):
+    def __init__(self, x_dim, v_dim, r_dim, h_dim, z_dim, L=12, pool=False):
         super(GenerativeQueryNetwork, self).__init__()
         self.r_dim = r_dim
 
         self.generator = GeneratorNetwork(x_dim, v_dim, r_dim, z_dim, h_dim, L)
-        self.representation = TowerRepresentation(x_dim, v_dim, r_dim, pool=False)
+        self.representation = TowerRepresentation(x_dim, v_dim, r_dim, pool=pool)
+
+
+
+
 
     def forward(self, context_x, context_v, query_x, query_v):
         """
@@ -52,6 +56,7 @@ class GenerativeQueryNetwork(nn.Module):
 
         # sum over view representations
         r = torch.sum(phi, dim=1)
+
 
         # Use random (image, viewpoint) pair in batch as query
         x_mu, kl = self.generator(query_x, query_v, r)

@@ -53,7 +53,8 @@ if __name__ == '__main__':
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
     parser.add_argument('--data_parallel', type=bool, help='whether to parallelise based on data (default: False)', default=False)
     parser.add_argument('--dataset', type=str, help='dataset name (default: rooms_ring_camera)', default='rooms_ring_dataset')
-    parser.add_argument('--L', type=int, help='number of generative steps (def: 8)', default=6)
+    parser.add_argument('--L', type=int, help='number of generative steps (def: 6)', default=6)
+    parser.add_argument('--pool', type=bool, help='number of generative steps (def: 6)', default=False)
     args = parser.parse_args()
     if not(os.path.exists("main.log")):
         with open("main.log", "w") as f:
@@ -63,7 +64,7 @@ if __name__ == '__main__':
             f.write("step,l2\n")
 
     # Create model and optimizer
-    model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, L=args.L).to(device)
+    model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, L=args.L, pool=args.pool).to(device)
     model = nn.DataParallel(model) if args.data_parallel else model
 
     optimizer = torch.optim.Adam(model.parameters(), lr=5 * 10 ** (-4))
@@ -74,19 +75,19 @@ if __name__ == '__main__':
 
     if len(os.listdir("./checkpoints/"))>0:
         # {"init": self.init, "delta": self.delta, "steps": self.steps, "s": self.s}
-        checkpoint = torch.load("./checkpoints/checkpoint_model_470000.pth")
-        ch_optimizer = torch.load("./checkpoints/checkpoint_optimizer_470000.pth")
+        checkpoint_nr = 0
+        checkpoint = torch.load("./checkpoints/checkpoint_model_{}.pth".format(checkpoint_nr))
+        ch_optimizer = torch.load("./checkpoints/checkpoint_optimizer_{}.pth".format(checkpoint_nr))
 
         # print(checkpoint.keys())
         model.load_state_dict(checkpoint)
         optimizer.load_state_dict(ch_optimizer)
-        annealers = torch.load("./checkpoints/checkpoint_annealers_470000.pth")
+        annealers = torch.load("./checkpoints/checkpoint_annealers_{}.pth".format(checkpoint_nr))
         sigma, mu = annealers
         sigma_scheme = Annealer(sigma['init'], sigma['delta'], sigma['steps'])
         sigma_scheme.s = sigma["s"]
         mu_scheme = Annealer(mu['init'], mu['delta'], mu['steps'])
         mu_scheme.s = mu["s"]
-        annealers = torch.load("./checkpoints/checkpoint_annealers_470000.pth")
         print("Checkpoint loaded")
         print(mu_scheme.s)
         print(sigma_scheme.s)

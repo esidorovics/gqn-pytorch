@@ -1,9 +1,11 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-df = pd.read_csv("main.log")
+# df = pd.read_csv("main.log")
+df = pd.read_csv("~/data/gqn/10/main.log")
+# df = pd.read_csv("~/data/gqn/6/main.log")
 print(df.shape)
 print(df.columns)
-df = df[df["step"]>100000]
+df = df[df["step"]>150000]
 step = df["step"].to_list()
 ll = df["ll"].to_list()
 kl = df["kl"].to_list()
