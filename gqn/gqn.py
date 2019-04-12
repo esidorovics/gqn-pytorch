@@ -99,6 +99,13 @@ class GenerativeQueryNetwork(nn.Module):
         phi = phi.view((batch_size, n_views, *phi_dims))
 
         r = torch.sum(phi, dim=1)
+        
+        r_dgf = r.view((batch_size, -1))
+        dgf = F.relu(self.input_layer(self.bn(r_dgf)))
+
+        r = self.bn(self.output_layer(dgf))
+        r = r.view((batch_size, *phi_dims))
+
 
         x_mu = self.generator.sample((h, w), query_v, r)
         return x_mu
