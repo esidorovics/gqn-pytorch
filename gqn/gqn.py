@@ -101,10 +101,67 @@ class GenerativeQueryNetwork(nn.Module):
         r = torch.sum(phi, dim=1)
         
         r_dgf = r.view((batch_size, -1))
+        mu1 = r_dgf.transpose(0,1).contiguous().mean(1)
+        var1 = r_dgf.transpose(0,1).contiguous().var(1)
         dgf = F.relu(self.input_layer(self.bn(r_dgf)))
 
-        r = self.bn(self.output_layer(dgf))
+        r = self.output_layer(dgf)
+        mu2 = r.transpose(0,1).contiguous().mean(1)
+        var2 = r.transpose(0,1).contiguous().var(1)
+        r = self.bn(r)
         r = r.view((batch_size, *phi_dims))
+
+        x_mu = self.generator.sample((h, w), query_v, r)
+        return x_mu, (mu1, var1), (mu2, var2)
+
+    def get_dgf(self, context_x, context_v, bn_stats):
+        """
+        Get DGF from context and context_v
+
+        :param context_x: set of context images to generate representation
+        :param context_v: viewpoints of `context_x`
+        """
+        batch_size, n_views, _, h, w = context_x.shape
+        
+        _, _, *x_dims = context_x.shape
+        _, _, *v_dims = context_v.shape
+
+        x = context_x.view((-1, *x_dims))
+        v = context_v.view((-1, *v_dims))
+
+        phi = self.representation(x, v)
+
+        _, *phi_dims = phi.shape
+        self.phi_dims = phi_dims
+        phi = phi.view((batch_size, n_views, *phi_dims))
+
+        r = torch.sum(phi, dim=1)
+        
+        r_dgf = r.view((batch_size, -1))
+        
+        mu, var = bn_stats
+        r_dgf = (r_dgf - mu) / torch.sqrt(var+0.00001)
+        r_dgf = self.bn.weight*r_dgf + self.bn.bias
+        
+        dgf = self.input_layer(r_dgf)
+        return dgf
+    
+    def sample_from_dgf(self, x_shape, r_dgf, query_v, bn_stats):
+        """
+        Get DGF from context and context_v
+
+        :param context_x: set of context images to generate representation
+        :param context_v: viewpoints of `context_x`
+        """
+        batch_size, h, w = x_shape
+        dgf = F.relu(r_dgf)
+        
+        r = self.output_layer(dgf)
+        mu, var = bn_stats
+        r = (r - mu) / torch.sqrt(var+0.00001)
+        r = self.bn.weight*r + self.bn.bias
+
+        r = r.view((batch_size, *self.phi_dims))
 
 
         x_mu = self.generator.sample((h, w), query_v, r)
