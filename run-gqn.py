@@ -75,12 +75,10 @@ if __name__ == '__main__':
     mu_scheme = Annealer(5 * 10 ** (-4), 5 * 10 ** (-5), 1.6 * 10 ** 6)
 
     if len(os.listdir("./checkpoints/"))>0:
-        # {"init": self.init, "delta": self.delta, "steps": self.steps, "s": self.s}
         checkpoint_nr = 0
         checkpoint = torch.load("./checkpoints/checkpoint_model_{}.pth".format(checkpoint_nr))
         ch_optimizer = torch.load("./checkpoints/checkpoint_optimizer_{}.pth".format(checkpoint_nr))
 
-        # print(checkpoint.keys())
         model.load_state_dict(checkpoint)
         optimizer.load_state_dict(ch_optimizer)
         annealers = torch.load("./checkpoints/checkpoint_annealers_{}.pth".format(checkpoint_nr))

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
+import numpy as np
 
 from .representation import TowerRepresentation
 from .generator import GeneratorNetwork
@@ -26,13 +27,31 @@ class GenerativeQueryNetwork(nn.Module):
         self.generator = GeneratorNetwork(x_dim, v_dim, r_dim, z_dim, h_dim, L)
         self.representation = TowerRepresentation(x_dim, v_dim, r_dim, pool=pool)
 
-        self.bn = nn.BatchNorm1d(r_dim)
+        self.bn1 = nn.BatchNorm1d(r_dim)
+        self.bn2 = nn.BatchNorm1d(r_dim)
+        
         self.input_layer = nn.Linear(r_dim, dgf_dim)
         self.output_layer = nn.Linear(dgf_dim, r_dim)
+        
         for param in self.input_layer.parameters():
             param.requires_grad = False
         for param in self.output_layer.parameters():
             param.requires_grad = False
+        w = self.input_layer.weight.numpy()
+        products = []
+        for i in range(256):
+            for j in range(i+1, 256):
+                w1 = w[i]
+                w2 = w[j]
+                prod = np.dot(w1, w2)
+                products.append(prod)
+        shift = np.percentile(products, 95)
+        biases_input = self.input_layer.bias.numpy()
+        biases_input -= shift
+        
+        biases_output = self.output_layer.bias.numpy()
+        biases_output -= shift
+
 
 
 
@@ -64,9 +83,9 @@ class GenerativeQueryNetwork(nn.Module):
         r = torch.sum(phi, dim=1)
 
         r_dgf = r.view((b, -1))
-        dgf = F.relu(self.input_layer(self.bn(r_dgf)))
+        dgf = F.relu(self.input_layer(self.bn1(r_dgf)))
 
-        r = self.bn(self.output_layer(dgf))
+        r = self.bn2(self.output_layer(dgf))
         r = r.view((b, *phi_dims))
 
         # Use random (image, viewpoint) pair in batch as query
@@ -103,12 +122,12 @@ class GenerativeQueryNetwork(nn.Module):
         r_dgf = r.view((batch_size, -1))
         mu1 = r_dgf.transpose(0,1).contiguous().mean(1)
         var1 = r_dgf.transpose(0,1).contiguous().var(1)
-        dgf = F.relu(self.input_layer(self.bn(r_dgf)))
+        dgf = F.relu(self.input_layer(self.bn1(r_dgf)))
 
         r = self.output_layer(dgf)
         mu2 = r.transpose(0,1).contiguous().mean(1)
         var2 = r.transpose(0,1).contiguous().var(1)
-        r = self.bn(r)
+        r = self.bn2(r)
         r = r.view((batch_size, *phi_dims))
 
         x_mu = self.generator.sample((h, w), query_v, r)
@@ -141,7 +160,7 @@ class GenerativeQueryNetwork(nn.Module):
         
         mu, var = bn_stats
         r_dgf = (r_dgf - mu) / torch.sqrt(var+0.00001)
-        r_dgf = self.bn.weight*r_dgf + self.bn.bias
+        r_dgf = self.bn1.weight*r_dgf + self.bn1.bias
         
         dgf = self.input_layer(r_dgf)
         return dgf
@@ -159,7 +178,7 @@ class GenerativeQueryNetwork(nn.Module):
         r = self.output_layer(dgf)
         mu, var = bn_stats
         r = (r - mu) / torch.sqrt(var+0.00001)
-        r = self.bn.weight*r + self.bn.bias
+        r = self.bn2.weight*r + self.bn2.bias
 
         r = r.view((batch_size, *self.phi_dims))
 
