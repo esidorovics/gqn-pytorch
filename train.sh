@@ -1,2 +1,2 @@
 source activate gpu
-python run-gqn.py --data_dir=/media/data/gqn-dataset/rooms_ring_camera/ --workers=7
+python run-gqn.py --data_dir=/home/eduards/gqn/data/rooms-ring-camera/ --workers=15 --L=8 --pool=True

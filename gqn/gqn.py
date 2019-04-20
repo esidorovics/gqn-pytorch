@@ -91,3 +91,41 @@ class GenerativeQueryNetwork(nn.Module):
 
         x_mu = self.generator.sample((h, w), query_v, r)
         return x_mu
+    
+    def get_r(self, context_x, context_v):
+        """
+        Sample from the network given some context and viewpoint.
+
+        :param context_x: set of context images to generate representation
+        :param context_v: viewpoints of `context_x`
+        :param viewpoint: viewpoint to generate image from
+        :param sigma: pixel variance
+        """
+        batch_size, n_views, _, h, w = context_x.shape
+        
+        _, _, *x_dims = context_x.shape
+        _, _, *v_dims = context_v.shape
+
+        x = context_x.view((-1, *x_dims))
+        v = context_v.view((-1, *v_dims))
+
+        phi = self.representation(x, v)
+
+        _, *phi_dims = phi.shape
+        phi = phi.view((batch_size, n_views, *phi_dims))
+
+        r = torch.sum(phi, dim=1)
+        return r
+  
+    def sample_from_r(self, x_dims, r, query_v):
+        """
+        Sample from the network given some context and viewpoint.
+
+        :param context_x: set of context images to generate representation
+        :param context_v: viewpoints of `context_x`
+        :param viewpoint: viewpoint to generate image from
+        :param sigma: pixel variance
+        """
+        x_mu = self.generator.sample(x_dims, query_v, r)
+        return x_mu
+    
