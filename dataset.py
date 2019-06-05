@@ -29,7 +29,7 @@ class GQN_Dataset(Dataset):
     in the GQN paper.
     :param root_dir: location of data on disc
     :param train: whether to use train of test set
-    :param transform: transform on images
+    :param transform: image preprocessing
     :param target_transform: transform on viewpoints
     """
     def __init__(self, root_dir, train=True, transform=transform_image, target_transform=transform_viewpoint):
@@ -37,7 +37,6 @@ class GQN_Dataset(Dataset):
         prefix = "train" if train else "test"
         self.root_dir = os.path.join(root_dir, prefix)
         self.records = sorted([p for p in os.listdir(self.root_dir) if "pt" in p])
-        # self.records = self.records[:int(len(self.records)*0.3)]
         self.transform = transform
         self.target_transform = target_transform
 
