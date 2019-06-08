@@ -10,9 +10,8 @@ Current solution is heavily based on [this code](https://github.com/wohlert/gene
 Code is tailored for Rooms Ring Camera dataset.
 
 
-###Training
-
-####Training data
+### Training
+#### Training data
 To download dataset you need [gsutil](https://cloud.google.com/storage/docs/gsutil)
 ```
 gsutil -m cp -R gs://gqn-dataset/rooms_ring_camera data/
@@ -26,7 +25,7 @@ python tfrecord-converter.py data/ rooms_ring_camera -b 36 -m "test"
 
 Or you can use scripts/data.sh script.
 
-####Training
+#### Training
 To train GQN model you need run `run-gqn.py`
 ```
 python run-gqn.py --data_dir=data/rooms-ring-camera/ --workers=15 --L=10
@@ -34,7 +33,7 @@ python run-gqn.py --data_dir=data/rooms-ring-camera/ --workers=15 --L=10
 Or use `train.sh` script.
 
 
-####Training process
+#### Training process
 During the training process, losses are written in `main.log` file. To visualize the content of log file you can use 
 `read_logs.py` script. 
 
@@ -57,8 +56,8 @@ Example:
 ![](images/validation_5.png)  
 
 
-###Tests  
-#### Rotation  
+### Tests
+#### Rotation
 `tests/rotation.py` 
 
 Rotates in random location from selected scene. Creates 36 images (rotates by approximately 10 degrees).
