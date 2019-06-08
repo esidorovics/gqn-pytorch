@@ -5,14 +5,13 @@ described in the DeepMind paper "Neural scene representation and
 rendering" by Eslami et al. For an introduction to the model and problem
 described in the paper look at the article by [DeepMind](https://deepmind.com/blog/neural-scene-representation-and-rendering/).
 
-![](https://storage.googleapis.com/deepmind-live-cms/documents/gif_2.gif)
-
 Current solution is heavily based on [this code](https://github.com/wohlert/generative-query-network-pytorch).
 
 Code is tailored for Rooms Ring Camera dataset.
 
 
 ###Training
+
 ####Training data
 To download dataset you need [gsutil](https://cloud.google.com/storage/docs/gsutil)
 ```
@@ -39,7 +38,7 @@ Or use `train.sh` script.
 During the training process, losses are written in `main.log` file. To visualize the content of log file you can use 
 `read_logs.py` script. 
 
-It will generate following result:
+It will generate following result:  
 ![](images/read_logs_result.png)
 
 First row: Total loss, Reconstruction loss, KL divergence
@@ -50,16 +49,16 @@ To generate predictions you can use `validations.py` script. It will read the la
 and run inference on specified number of context. 
 Generated image has following structure: context | prediction | ground truth
 
-Example:
-![](images/validation_1.png)
-![](images/validation_2.png)
-![](images/validation_3.png)
-![](images/validation_4.png)
-![](images/validation_5.png)
+Example:  
+![](images/validation_1.png)  
+![](images/validation_2.png)  
+![](images/validation_3.png)  
+![](images/validation_4.png)  
+![](images/validation_5.png)  
 
 
-###Tests
-#### Rotation
+###Tests  
+#### Rotation  
 `tests/rotation.py` 
 
 Rotates in random location from selected scene. Creates 36 images (rotates by approximately 10 degrees).
