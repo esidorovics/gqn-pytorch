@@ -61,6 +61,7 @@ if __name__ == '__main__':
     import cv2
     train_dataset = GQN_Dataset(root_dir="../data/rooms_ring_camera")
     img, v = train_dataset[1]
+    img *=255
     b, m, *x_dims = img.shape
     print(img.shape, v.shape)
     img = img.view(1, *img.shape)

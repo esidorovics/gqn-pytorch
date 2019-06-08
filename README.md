@@ -1,4 +1,4 @@
-# Generative Query Network
+## Neural scene representation and rendering: Generative Query Network
 
 This is a PyTorch implementation of the Generative Query Network (GQN)
 described in the DeepMind paper "Neural scene representation and
@@ -7,26 +7,76 @@ described in the paper look at the article by [DeepMind](https://deepmind.com/bl
 
 ![](https://storage.googleapis.com/deepmind-live-cms/documents/gif_2.gif)
 
-The current implementation generalises to any of the datasets described
-in the paper. However, currently, *only the Shepard-Metzler dataset* has
-been implemented. To use this dataset you can use the provided script in
+Current solution is heavily based on [this code](https://github.com/wohlert/generative-query-network-pytorch).
+
+Code is tailored for Rooms Ring Camera dataset.
+
+
+###Training
+####Training data
+To download dataset you need [gsutil](https://cloud.google.com/storage/docs/gsutil)
 ```
-sh scripts/data.sh data-dir batch-size
+gsutil -m cp -R gs://gqn-dataset/rooms_ring_camera data/
 ```
 
-The model can be trained in full by in accordance to the paper by running the
-file `run-gqn.py` or by using the provided training script
+Data is stored in tfrecords. To convert to .npy format you should use scripts/tfrecord-converter.py script
 ```
-sh scripts/gpu.sh data-dir
+python tfrecord-converter.py data/ rooms_ring_camera -b 36 -m "train"
+python tfrecord-converter.py data/ rooms_ring_camera -b 36 -m "test"
 ```
 
-## Implementation
+Or you can use scripts/data.sh script.
 
-The implementation shown in this repository consists of all of the
-representation architectures described in the paper along with the
-generative model that is similar to the one described in 
-"Towards conceptual compression" by Gregor et al.
+####Training
+To train GQN model you need run `run-gqn.py`
+```
+python run-gqn.py --data_dir=data/rooms-ring-camera/ --workers=15 --L=10
+```
+Or use `train.sh` script.
 
-Additionally, this repository also contains implementations of the **DRAW
-model and the ConvolutionalDRAW** model both described by Gregor et al.
 
+####Training process
+During the training process, losses are written in `main.log` file. To visualize the content of log file you can use 
+`read_logs.py` script. 
+
+It will generate following result:
+![](images/read_logs_result.png)
+
+First row: Total loss, Reconstruction loss, KL divergence
+Second row: Learning rate, Sigma
+
+
+To generate predictions you can use `validations.py` script. It will read the last checkpoint from checkpoints/ folder
+and run inference on specified number of context. 
+Generated image has following structure: context | prediction | ground truth
+
+Example:
+![](images/validation_1.png)
+![](images/validation_2.png)
+![](images/validation_3.png)
+![](images/validation_4.png)
+![](images/validation_5.png)
+
+
+###Tests
+#### Rotation
+`tests/rotation.py` 
+
+Rotates in random location from selected scene. Creates 36 images (rotates by approximately 10 degrees).
+
+
+`tests/spatial_understanding.py`
+
+
+
+### Results
+Model was trained for 1.6 million iterations on Rooms Ring Camera dataset with 10 generative steps, using 
+"Tower" representation network.
+
+![](images/model_results.png)
+ 
+### Notes
+Model has not learnt to completely render the Rooms Ring Dataset. It requires to play with random seeds to achieve 
+great results. I suggest to try model with 12 generative steps. Some tests show that even with 8 generative steps 
+model learns to reproduce good quality images. However, to force better representation learning I suggest to use 12
+generative steps. 

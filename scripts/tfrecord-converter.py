@@ -77,8 +77,8 @@ if __name__ == '__main__':
     parser = ArgumentParser(description='Convert gqn tfrecords to gzip files.')
     parser.add_argument('base_dir', nargs=1,
                         help='base directory of gqn dataset')
-    parser.add_argument('dataset', type=str, default="shepard_metzler_5_parts",
-                        help='datasets to convert, eg. shepard_metzler_5_parts')
+    parser.add_argument('dataset', type=str, default="rooms_ring_camera",
+                        help='datasets to convert, eg. rooms_ring_camera')
     parser.add_argument('-b', '--batch-size', type=int, default=36,
                         help='number of sequences in each output file')
     parser.add_argument('-m', '--mode', type=str, default='train',

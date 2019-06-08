@@ -8,6 +8,7 @@ the supplementary materials of the paper.
 import random
 import math
 from argparse import ArgumentParser
+import glob
 
 # Torch
 import torch
@@ -46,22 +47,21 @@ dataset_params = {
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='Generative Query Network')
-    parser.add_argument('--n_epochs', type=int, default=7, help='number of epochs run (default: 500)')
+    parser.add_argument('--n_epochs', type=int, default=7, help='number of epochs run (default: 7)')
     parser.add_argument('--batch_size', type=int, default=1, help='multiple of batch size (default: 1)')
-    parser.add_argument('--data_dir', type=str, help='location of data', default="train")
+    parser.add_argument('--data_dir', type=str, help='location of data', default="data")
     parser.add_argument('--log_dir', type=str, help='location of logging', default="log")
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
     parser.add_argument('--data_parallel', type=bool, help='whether to parallelise based on data (default: False)', default=False)
     parser.add_argument('--dataset', type=str, help='dataset name (default: rooms_ring_camera)', default='rooms_ring_dataset')
     parser.add_argument('--L', type=int, help='number of generative steps (def: 6)', default=6)
-    parser.add_argument('--pool', type=bool, help='number of generative steps (def: 6)', default=False)
+    parser.add_argument('--pool', type=bool, help='Use Pool representation architeccture (def: False)', default=False)
     args = parser.parse_args()
     if not(os.path.exists("main.log")):
         with open("main.log", "w") as f:
             f.write("step,elbo,ll,kl,sigma,mu\n")
-    if not(os.path.exists("l2.log")):
-        with open("l2.log", "w") as f:
-            f.write("step,l2\n")
+    if not(os.path.exists("checkpoints")):
+        os.makedirs("checkpoints")
 
     # Create model and optimizer
     model = GenerativeQueryNetwork(x_dim=3, v_dim=7, r_dim=256, h_dim=128, z_dim=64, L=args.L, pool=args.pool).to(device)
@@ -74,8 +74,12 @@ if __name__ == '__main__':
     mu_scheme = Annealer(5 * 10 ** (-4), 5 * 10 ** (-5), 1.6 * 10 ** 6)
 
     if len(os.listdir("./checkpoints/"))>0:
-        # {"init": self.init, "delta": self.delta, "steps": self.steps, "s": self.s}
-        checkpoint_nr = 0
+        checkpoints = glob.glob("checkpoints/checkpoint_model_*.pth")
+        checkpoints.sort(key=lambda x: os.path.getmtime(x))
+        last_checkpoint = os.path.basename(checkpoints[-1])
+        checkpoint_nr = [d for d in last_checkpoint if d.isdigit()]
+        checkpoint_nr = "".join(checkpoint_nr)
+
         checkpoint = torch.load("./checkpoints/checkpoint_model_{}.pth".format(checkpoint_nr))
         ch_optimizer = torch.load("./checkpoints/checkpoint_optimizer_{}.pth".format(checkpoint_nr))
 

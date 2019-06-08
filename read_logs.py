@@ -1,11 +1,13 @@
+"""
+Plots Total loss, Reconstruction Loss and KL Divergence
+"""
+
 import pandas as pd
 import matplotlib.pyplot as plt
-# df = pd.read_csv("main.log")
-df = pd.read_csv("~/data/gqn/10/main.log")
-# df = pd.read_csv("~/data/gqn/6/main.log")
-print(df.shape)
-print(df.columns)
-df = df[df["step"]>150000]
+
+df = pd.read_csv("main.log")
+# df = df[df["step"]>200000]
+
 step = df["step"].to_list()
 ll = df["ll"].to_list()
 kl = df["kl"].to_list()
@@ -36,6 +38,7 @@ plt.plot(step, kl_av)
 
 plt.subplot(234)
 plt.plot(step, mu)
+
 plt.subplot(235)
 plt.plot(step, sigma)
 plt.show()
